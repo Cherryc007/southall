@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isDiscountActive } from "@/lib/helpers";
+import { getOrCreateSettings } from "@/lib/helpers";
 import { connectDB } from "@/lib/db";
 
 export async function GET() {
