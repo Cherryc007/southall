@@ -26,5 +26,4 @@ const SettingsSchema = new Schema<ISettings>(
   { timestamps: true }
 );
 
-delete models.Settings;
 export const Settings = models.Settings || model("Settings", SettingsSchema);

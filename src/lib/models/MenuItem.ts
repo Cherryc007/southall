@@ -34,5 +34,4 @@ const MenuItemSchema = new Schema<IMenuItem>(
   { timestamps: true }
 );
 
-delete models.MenuItem;
 export const MenuItem = models.MenuItem || model("MenuItem", MenuItemSchema);

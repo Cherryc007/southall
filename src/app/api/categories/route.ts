@@ -6,11 +6,16 @@ import { seedDefaultData } from "@/lib/helpers";
 export async function GET() {
   try {
     await connectDB();
+    await seedDefaultData(); // Ensure base categories exist
     const categories = await Category.find().sort({ order: 1 });
     return NextResponse.json({ success: true, data: categories });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ success: false, error: "Failed to fetch categories" }, { status: 500 });
+  } catch (error: any) {
+    console.error("API GET Categories Error:", error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message || "Failed to fetch categories",
+      details: error.name === "MongooseServerSelectionError" ? "Could not connect to MongoDB Atlas. Please check if your IP is whitelisted (0.0.0.0/0) in Atlas." : "Internal Server Error"
+    }, { status: 500 });
   }
 }
 
