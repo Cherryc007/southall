@@ -32,7 +32,7 @@ function PortionDialog({ item, discountPercent, onClose, onAdd }: { item: MenuIt
                   ) : (
                     <span style={{ fontWeight: 700, fontSize: 16 }}>{fmt(currentPrice)}</span>
                   )}
-                  <button className="btn btn-primary btn-sm" onClick={() => onAdd(p.name, discountedPrice)}>Add</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => onAdd(p.name, p.price)}>Add</button>
                 </div>
               </div>
             );
@@ -50,7 +50,7 @@ interface Discounts { global: DiscountConfig; chamber: DiscountConfig; }
 
 function fmt(n: number) { return `₹${n.toFixed(2)}`; }
 
-function MenuCard({ item, discountPercent, onSelectPortion }: { item: MenuItem; discountPercent: number; onSelectPortion: (item: MenuItem) => void }) {
+function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item: MenuItem; discountPercent: number; onSelectPortion: (item: MenuItem) => void, orderMode: boolean }) {
   const { items, updateQty, add, remove } = useCart();
 
   const currentPrice = item.price;
@@ -68,7 +68,8 @@ function MenuCard({ item, discountPercent, onSelectPortion }: { item: MenuItem; 
     if (hasPortions) {
       onSelectPortion(item);
     } else {
-      add({ menuItemId: item._id, name: item.name, portionName: undefined, price: discountedPrice, image: item.image });
+      // Always add with original price; discounts are handled at the total/checkout level
+      add({ menuItemId: item._id, name: item.name, portionName: undefined, price: currentPrice, image: item.image });
     }
   };
 
@@ -107,16 +108,18 @@ function MenuCard({ item, discountPercent, onSelectPortion }: { item: MenuItem; 
               fmt(currentPrice)
             )}
           </div>
-          {qty === 0 || hasPortions ? (
-            <button className="btn btn-primary btn-sm" onClick={handleAdd}>
-              {hasPortions ? "Options" : "Add"}
-            </button>
-          ) : (
-            <div className="qty-control">
-              <button className="qty-btn" onClick={() => updateQty(cartItemId, qty - 1)}>−</button>
-              <span className="qty-count">{qty}</span>
-              <button className="qty-btn" onClick={() => updateQty(cartItemId, qty + 1)}>+</button>
-            </div>
+          {orderMode && (
+            qty === 0 || hasPortions ? (
+              <button className="btn btn-primary btn-sm" onClick={handleAdd}>
+                {hasPortions ? "Options" : "Add"}
+              </button>
+            ) : (
+              <div className="qty-control">
+                <button className="qty-btn" onClick={() => updateQty(cartItemId, qty - 1)}>−</button>
+                <span className="qty-count">{qty}</span>
+                <button className="qty-btn" onClick={() => updateQty(cartItemId, qty + 1)}>+</button>
+              </div>
+            )
           )}
         </div>
       </div>
@@ -129,6 +132,7 @@ export default function MenuPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [activeCategory, setActiveCategory] = useState("");
+  const [orderMode, setOrderMode] = useState(false);
   const [discounts, setDiscounts] = useState<Discounts | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedPortionItem, setSelectedPortionItem] = useState<MenuItem | null>(null);
@@ -152,18 +156,23 @@ export default function MenuPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const specials = menuItems.filter(i => i.isSpecial);
-  const filtered = activeCategory === "specials"
-    ? specials
-    : menuItems.filter(i => i.category === activeCategory);
-
   const discountedTotal = discounts?.global.active ? total * (1 - discounts.global.percent / 100) : total;
-  const savings = total - discountedTotal;
 
-  function scrollCatIntoView(slug: string) {
+  function scrollToCategory(slug: string) {
     setActiveCategory(slug);
-    const el = catBarRef.current?.querySelector(`[data-slug="${slug}"]`) as HTMLElement;
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    const el = document.getElementById(`cat-${slug}`);
+    if (el) {
+      const offset = 130; // Account for sticky header
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = el.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
+      });
+    }
   }
 
   if (loading) return (
@@ -175,75 +184,111 @@ export default function MenuPage() {
   );
 
   return (
-    <div style={{ background: "var(--bg-primary)", minHeight: "100vh", paddingBottom: 120 }}>
-      {/* Header */}
-      <header style={{ background: "var(--brand-dark)", padding: "20px 16px 0" }}>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--brand-gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🍽️</div>
-            <div>
-              <h1 style={{ color: "white", fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{settings.restaurantName}</h1>
-              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>{settings.bannerMessage}</p>
+    <div style={{ background: "var(--bg-primary)", minHeight: "100vh", paddingBottom: 140 }}>
+      {/* Sticky Header */}
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--brand-dark)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+        <header style={{ padding: "16px 16px 8px" }}>
+          <div style={{ maxWidth: 600, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--brand-gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🍽️</div>
+              <div>
+                <h1 style={{ color: "white", fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>{settings.restaurantName}</h1>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{settings.bannerMessage}</p>
+              </div>
+            </div>
+            {/* Category Bar */}
+            <div ref={catBarRef} style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+              {categories.map(cat => (
+                <button key={cat.slug}
+                  onClick={() => scrollToCategory(cat.slug)}
+                  style={{
+                    flexShrink: 0, padding: "6px 14px", borderRadius: "var(--radius-full)",
+                    background: activeCategory === cat.slug ? "var(--brand-gold)" : "rgba(255,255,255,0.12)",
+                    color: activeCategory === cat.slug ? "var(--brand-dark)" : "rgba(255,255,255,0.8)",
+                    fontWeight: 600, fontSize: 12, transition: "all 0.2s", border: "none", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}>
+                  <span>{cat.icon}</span>{cat.name}
+                </button>
+              ))}
             </div>
           </div>
-          {discounts?.global.active && (
-            <div style={{ background: "rgba(212,160,23,0.2)", border: "1px solid rgba(212,160,23,0.4)", borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20 }}>🎉</span>
-              <span style={{ color: "var(--brand-gold-light)", fontSize: 14, fontWeight: 600 }}>{discounts.global.percent}% discount is active on all items today!</span>
-            </div>
-          )}
-          {/* Category Bar */}
-          <div ref={catBarRef} style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 16, scrollbarWidth: "none" }}>
-            {categories.map(cat => (
-              <button key={cat.slug} data-slug={cat.slug}
-                onClick={() => scrollCatIntoView(cat.slug)}
-                style={{
-                  flexShrink: 0, padding: "8px 16px", borderRadius: "var(--radius-full)",
-                  background: activeCategory === cat.slug ? "var(--brand-gold)" : "rgba(255,255,255,0.12)",
-                  color: activeCategory === cat.slug ? "var(--brand-dark)" : "rgba(255,255,255,0.8)",
-                  fontWeight: 600, fontSize: 13, transition: "all 0.2s", border: "none", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 6,
-                }}>
-                <span>{cat.icon}</span>{cat.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      {/* Menu Grid */}
-      <main style={{ maxWidth: 600, margin: "0 auto", padding: "20px 16px" }}>
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🍽️</div>
-            <p style={{ fontSize: 16 }}>No items in this category</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            {filtered.map(item => (
-              <MenuCard key={item._id} item={item} discountPercent={discounts?.global.active ? discounts.global.percent : 0} onSelectPortion={setSelectedPortionItem} />
-            ))}
+      {/* Main Menu List */}
+      <main style={{ maxWidth: 600, margin: "0 auto", padding: "16px" }}>
+        {discounts?.global.active && (
+          <div style={{ background: "rgba(212,160,23,0.1)", border: "1px solid rgba(212,160,23,0.2)", borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18 }}>🎉</span>
+            <span style={{ color: "var(--brand-gold)", fontSize: 13, fontWeight: 600 }}>{discounts.global.percent}% discount active today!</span>
           </div>
         )}
+
+        {categories.map(cat => {
+          const catItems = menuItems.filter(i => i.category === cat.slug || (cat.slug === "specials" && i.isSpecial));
+          if (catItems.length === 0) return null;
+
+          return (
+            <div key={cat.slug} id={`cat-${cat.slug}`} style={{ marginBottom: 32 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 24 }}>{cat.icon}</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--brand-dark)" }}>{cat.name}</h2>
+                <div style={{ flex: 1, height: 1, background: "var(--border-light)", marginLeft: 8 }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                {catItems.map(item => (
+                  <MenuCard 
+                    key={item._id} 
+                    item={item} 
+                    orderMode={orderMode}
+                    discountPercent={discounts?.global.active ? discounts.global.percent : 0} 
+                    onSelectPortion={setSelectedPortionItem} 
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </main>
 
-      {/* Floating Cart */}
-      {count > 0 && (
-        <div className="floating-cart">
-          <button className="btn btn-primary btn-lg" onClick={() => setCartOpen(true)}
-            style={{ boxShadow: "0 8px 24px rgba(212,160,23,0.5)", minWidth: 280, position: "relative" }}>
-            <span style={{ background: "var(--brand-dark)", color: "var(--brand-gold)", borderRadius: "50%", width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 }}>{count}</span>
-            View Cart
-            <span style={{ marginLeft: "auto" }}>
-              {discounts?.global.active ? (
-                <span>
-                  <span style={{ textDecoration: "line-through", opacity: 0.6, fontSize: 13 }}>{fmt(total)}</span>{" "}
-                  {fmt(discountedTotal)}
-                </span>
-              ) : fmt(total)}
-            </span>
+      {/* Persistent Order Mode Toggle */}
+      {!orderMode ? (
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 60, width: "100%", maxWidth: 400, padding: "0 20px" }}>
+          <button className="btn btn-primary btn-lg btn-full" onClick={() => setOrderMode(true)}
+            style={{ 
+              boxShadow: "0 12px 32px rgba(212,160,23,0.5)", 
+              fontSize: 16, 
+              fontWeight: 800, 
+              height: 60, 
+              borderRadius: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10
+            }}>
+            📍 Nearby? Order Now!
           </button>
         </div>
+      ) : (
+        /* Floating Cart when in Order Mode */
+        count > 0 && (
+          <div className="floating-cart">
+            <button className="btn btn-primary btn-lg" onClick={() => setCartOpen(true)}
+              style={{ boxShadow: "0 8px 24px rgba(212,160,23,0.5)", minWidth: 280, position: "relative" }}>
+              <span style={{ background: "var(--brand-dark)", color: "var(--brand-gold)", borderRadius: "50%", width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 }}>{count}</span>
+              View Cart
+              <span style={{ marginLeft: "auto" }}>
+                {discounts?.global.active ? (
+                  <span>
+                    <span style={{ textDecoration: "line-through", opacity: 0.6, fontSize: 13 }}>{fmt(total)}</span>{" "}
+                    {fmt(discountedTotal)}
+                  </span>
+                ) : fmt(total)}
+              </span>
+            </button>
+          </div>
+        )
       )}
 
       {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} discounts={discounts} />}
@@ -253,8 +298,12 @@ export default function MenuPage() {
           item={selectedPortionItem} 
           discountPercent={discounts?.global.active ? discounts.global.percent : 0}
           onClose={() => setSelectedPortionItem(null)}
-          onAdd={(portionName, price) => {
-            add({ menuItemId: selectedPortionItem._id, name: selectedPortionItem.name, portionName, price, image: selectedPortionItem.image });
+          onAdd={(portionName, originalPrice) => {
+            // Re-fetch original price from item.portions to be safe, or just use passed original price
+            const portion = selectedPortionItem.portions.find(p => p.name === portionName);
+            if (portion) {
+              add({ menuItemId: selectedPortionItem._id, name: selectedPortionItem.name, portionName, price: portion.price, image: selectedPortionItem.image });
+            }
             setSelectedPortionItem(null);
           }}
         />
@@ -262,3 +311,4 @@ export default function MenuPage() {
     </div>
   );
 }
+
