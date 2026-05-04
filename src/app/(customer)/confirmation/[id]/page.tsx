@@ -23,7 +23,7 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [settings, setSettings] = useState<{ restaurantName: string; restaurantPhone: string; restaurantAddress: string }>({ restaurantName: "Southall Kitchen", restaurantPhone: "", restaurantAddress: "" });
+  const [settings, setSettings] = useState<{ restaurantName: string; restaurantPhone: string; restaurantAddress: string }>({ restaurantName: "Southall Kitchens", restaurantPhone: "", restaurantAddress: "" });
   const [id, setId] = useState("");
 
   useEffect(() => {
@@ -52,14 +52,15 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
   }, [id, order]);
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
-      <div className="spinner spinner-dark" style={{ width: 40, height: 40 }} />
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, background: "var(--bg-primary)" }}>
+      <img src="/logo.jpeg" alt="Logo" style={{ width: 80, height: 80, objectFit: "contain" }} />
+      <div className="spinner spinner-dark" style={{ width: 32, height: 32 }} />
     </div>
   );
 
   if (error || !order) return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, background: "var(--bg-primary)" }}>
-      <div style={{ fontSize: 48 }}>❌</div>
+      <img src="/logo.jpeg" alt="Logo" style={{ width: 100, height: 100, objectFit: "contain", opacity: 0.5 }} />
       <h1 style={{ fontSize: 22, fontWeight: 700 }}>Order Not Found</h1>
       <p style={{ color: "var(--text-muted)", textAlign: "center" }}>{error}</p>
       <Link href="/" className="btn btn-primary">Back to Menu</Link>
@@ -71,10 +72,10 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
   return (
     <div style={{ background: "var(--bg-primary)", minHeight: "100vh", paddingBottom: 40 }}>
       {/* Header */}
-      <div style={{ background: "var(--brand-dark)", padding: "20px 20px 32px", textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>{statusInfo.icon}</div>
+      <div style={{ background: "var(--brand-dark)", padding: "24px 20px 40px", textAlign: "center" }}>
+        <img src="/logo.jpeg" alt="Logo" style={{ width: 100, height: 100, objectFit: "contain", margin: "0 auto 16px", background: "white", borderRadius: "50%", padding: 8 }} />
         <h1 style={{ color: "white", fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{statusInfo.label}</h1>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14 }}>{statusInfo.message}</p>
+        <p style={{ color: "var(--brand-gold)", fontSize: 14, fontWeight: 600 }}>{statusInfo.message}</p>
       </div>
 
       <div style={{ maxWidth: 480, margin: "-16px auto 0", padding: "0 16px" }}>
@@ -110,17 +111,46 @@ export default function ConfirmationPage({ params }: { params: Promise<{ id: str
             )}
             <div className="divider" />
             <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 18 }}>
-              <span>Total Paid</span>
+              <span>Total Payable</span>
               <span style={{ color: "var(--brand-dark)" }}>{fmt(order.total)}</span>
             </div>
           </div>
+        </div>
+
+        {/* WhatsApp Confirmation */}
+        <div className="card card-pad slide-up" style={{ marginBottom: 16, animationDelay: "0.15s", background: "#e7fceb", borderColor: "#c3e6cb", textAlign: "center" }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: "#1e7e34", marginBottom: 12 }}>
+            For faster confirmation, send your order on WhatsApp
+          </p>
+          <a 
+            href={`https://wa.me/${settings.restaurantPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+              `Order Details:\n${order.items.map(i => `- ${i.name} x ${i.quantity}`).join('\n')}\n\n` +
+              `Total: ₹${order.subtotal.toFixed(2)}\n` +
+              (order.discountAmount > 0 ? `Discount: ₹${order.discountAmount.toFixed(2)}\n` : '') +
+              `Final Amount: ₹${order.total.toFixed(2)}\n\n` +
+              `Phone: ${order.phone}\n` +
+              `Chamber: ${order.chamber || 'N/A'}\n\n` +
+              `Order ID: ${order.orderId}`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-full"
+            style={{ background: "#25D366", color: "white", fontWeight: 800, fontSize: 16, boxShadow: "0 4px 12px rgba(37,211,102,0.3)" }}
+          >
+            <span style={{ fontSize: 20 }}>💬</span> Send Order on WhatsApp
+          </a>
         </div>
 
         {/* Contact */}
         <div className="card card-pad slide-up" style={{ marginBottom: 20, animationDelay: "0.2s" }}>
           <p style={{ fontWeight: 700, marginBottom: 8 }}>📞 Need help with your order?</p>
           <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 4 }}>{settings.restaurantName}</p>
-          {settings.restaurantPhone && <p style={{ color: "var(--brand-gold)", fontSize: 15, fontWeight: 600 }}>{settings.restaurantPhone}</p>}
+          {settings.restaurantPhone && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <p style={{ color: "var(--brand-gold)", fontSize: 15, fontWeight: 600 }}>{settings.restaurantPhone}</p>
+              <p style={{ fontSize: 11, color: "var(--text-muted)" }}>If WhatsApp cannot open, please contact us directly at {settings.restaurantPhone}</p>
+            </div>
+          )}
           {settings.restaurantAddress && <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>{settings.restaurantAddress}</p>}
         </div>
 

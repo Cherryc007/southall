@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import Image from "next/image";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function MenuManagement() {
@@ -182,7 +181,7 @@ export default function MenuManagement() {
           <label className="form-label">Tags & Image (Optional)</label>
           <input className="form-input" placeholder="Tags (comma separated)" value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} style={{ marginBottom: 10 }} />
           <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            {form.image && <Image src={form.image} alt="Preview" width={48} height={48} style={{ objectFit: "cover", borderRadius: 4 }} />}
+            {form.image && <img src={form.image} alt="Preview" style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 4 }} />}
             <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} />
             {uploading && <span className="spinner spinner-dark" />}
           </div>

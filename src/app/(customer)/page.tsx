@@ -1,8 +1,14 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import { useCart } from "@/lib/CartContext";
 import CartDrawer from "@/components/customer/CartDrawer";
+
+interface Category { _id: string; name: string; slug: string; icon: string; }
+interface MenuItem { _id: string; name: string; description: string; price: number; portions: { name: string; price: number }[]; gst: number; category: string; image: string; tags: string[]; available: boolean; isSpecial: boolean; }
+interface DiscountConfig { active: boolean; percent: number; }
+interface Discounts { global: DiscountConfig; chamber: DiscountConfig; }
+
+function fmt(n: number) { return `₹${n.toFixed(2)}`; }
 
 // Portion Dialog Component
 function PortionDialog({ item, discountPercent, onClose, onAdd }: { item: MenuItem; discountPercent: number; onClose: () => void; onAdd: (portionName: string, price: number) => void }) {
@@ -43,12 +49,7 @@ function PortionDialog({ item, discountPercent, onClose, onAdd }: { item: MenuIt
   );
 }
 
-interface Category { _id: string; name: string; slug: string; icon: string; }
-interface MenuItem { _id: string; name: string; description: string; price: number; portions: { name: string; price: number }[]; gst: number; category: string; image: string; tags: string[]; available: boolean; isSpecial: boolean; }
-interface DiscountConfig { active: boolean; percent: number; }
-interface Discounts { global: DiscountConfig; chamber: DiscountConfig; }
 
-function fmt(n: number) { return `₹${n.toFixed(2)}`; }
 
 function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item: MenuItem; discountPercent: number; onSelectPortion: (item: MenuItem) => void, orderMode: boolean }) {
   const { items, updateQty, add, remove } = useCart();
@@ -57,7 +58,7 @@ function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item:
   const discountedPrice = currentPrice * (1 - discountPercent / 100);
   const isDiscounted = discountPercent > 0;
   const hasPortions = item.portions && item.portions.length > 0;
-  
+
   const cartItemId = `${item._id}-base`;
   const cartItem = items.find(i => i.cartItemId === cartItemId);
   const qty = cartItem?.quantity ?? 0;
@@ -81,7 +82,7 @@ function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item:
         </div>
       )}
       {item.image ? (
-        <Image src={item.image} alt={item.name} width={400} height={300} className="menu-item-img" style={{ objectFit: "cover" }} />
+        <img src={item.image} alt={item.name} className="menu-item-img" style={{ objectFit: "cover" }} />
       ) : (
         <div className="menu-item-img-placeholder">
           {item.category === "beverages" ? "🥤" : item.category === "starters" ? "🥗" : item.category === "wraps" ? "🌯" : item.category === "mains" ? "🍛" : item.category === "combos" ? "🎁" : "🍽️"}
@@ -137,7 +138,7 @@ export default function MenuPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedPortionItem, setSelectedPortionItem] = useState<MenuItem | null>(null);
   const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState<{ restaurantName: string; bannerMessage: string; restaurantPhone: string }>({ restaurantName: "Southall Kitchen", bannerMessage: "Fresh food, fast service", restaurantPhone: "" });
+  const [settings, setSettings] = useState<{ restaurantName: string; bannerMessage: string; restaurantPhone: string }>({ restaurantName: "Southall Kitchens", bannerMessage: "Treat the Buds", restaurantPhone: "" });
   const catBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -155,6 +156,44 @@ export default function MenuPage() {
       if (catList.length) setActiveCategory(catList[0].slug);
     }).finally(() => setLoading(false));
   }, []);
+
+  // Scroll Spy logic
+  useEffect(() => {
+    const handleScroll = () => {
+      if (categories.length === 0 || loading) return;
+
+      const categoryElements = categories.map(cat => ({
+        slug: cat.slug,
+        el: document.getElementById(`cat-${cat.slug}`)
+      })).filter(item => item.el !== null);
+
+      const scrollPosition = window.scrollY + 150; // Offset for sticky header
+
+      let currentActive = categories[0]?.slug;
+      for (const item of categoryElements) {
+        if (item.el!.offsetTop <= scrollPosition) {
+          currentActive = item.slug;
+        } else {
+          break;
+        }
+      }
+
+      if (currentActive && currentActive !== activeCategory) {
+        setActiveCategory(currentActive);
+        
+        // Auto-scroll the category bar to keep active item in view
+        const activeBtn = catBarRef.current?.querySelector(`[data-slug="${currentActive}"]`) as HTMLElement;
+        if (activeBtn && catBarRef.current) {
+          const container = catBarRef.current;
+          const left = activeBtn.offsetLeft - (container.offsetWidth / 2) + (activeBtn.offsetWidth / 2);
+          container.scrollTo({ left, behavior: "smooth" });
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [categories, activeCategory, loading]);
 
   const discountedTotal = discounts?.global.active ? total * (1 - discounts.global.percent / 100) : total;
 
@@ -176,10 +215,13 @@ export default function MenuPage() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "var(--bg-primary)" }}>
-      <div style={{ fontSize: 48 }}>🍽️</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: "var(--brand-dark)" }}>Southall Kitchen</div>
-      <div className="spinner spinner-dark" style={{ width: 32, height: 32 }} />
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, background: "var(--bg-primary)" }}>
+      <img src="/logo.jpeg" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} className="fade-in" />
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--brand-dark)" }}>Southall Kitchens</div>
+        <div style={{ fontSize: 14, color: "var(--brand-gold)", fontWeight: 600 }}>Treat the Buds</div>
+      </div>
+      <div className="spinner spinner-dark" style={{ width: 28, height: 28, marginTop: 10 }} />
     </div>
   );
 
@@ -189,17 +231,18 @@ export default function MenuPage() {
       <div style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--brand-dark)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
         <header style={{ padding: "16px 16px 8px" }}>
           <div style={{ maxWidth: 600, margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--brand-gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>🍽️</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+              <img src="/logo.jpeg" alt="Logo" style={{ width: 44, height: 44, objectFit: "contain", background: "white", borderRadius: "50%", padding: 2 }} />
               <div>
                 <h1 style={{ color: "white", fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>{settings.restaurantName}</h1>
-                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{settings.bannerMessage}</p>
+                <p style={{ color: "var(--brand-gold)", fontSize: 12, fontWeight: 600 }}>{settings.bannerMessage}</p>
               </div>
             </div>
             {/* Category Bar */}
             <div ref={catBarRef} style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
               {categories.map(cat => (
                 <button key={cat.slug}
+                  data-slug={cat.slug}
                   onClick={() => scrollToCategory(cat.slug)}
                   style={{
                     flexShrink: 0, padding: "6px 14px", borderRadius: "var(--radius-full)",
@@ -238,12 +281,12 @@ export default function MenuPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {catItems.map(item => (
-                  <MenuCard 
-                    key={item._id} 
-                    item={item} 
+                  <MenuCard
+                    key={item._id}
+                    item={item}
                     orderMode={orderMode}
-                    discountPercent={discounts?.global.active ? discounts.global.percent : 0} 
-                    onSelectPortion={setSelectedPortionItem} 
+                    discountPercent={discounts?.global.active ? discounts.global.percent : 0}
+                    onSelectPortion={setSelectedPortionItem}
                   />
                 ))}
               </div>
@@ -256,11 +299,11 @@ export default function MenuPage() {
       {!orderMode ? (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 60, width: "100%", maxWidth: 400, padding: "0 20px" }}>
           <button className="btn btn-primary btn-lg btn-full" onClick={() => setOrderMode(true)}
-            style={{ 
-              boxShadow: "0 12px 32px rgba(212,160,23,0.5)", 
-              fontSize: 16, 
-              fontWeight: 800, 
-              height: 60, 
+            style={{
+              boxShadow: "0 12px 32px rgba(212,160,23,0.5)",
+              fontSize: 16,
+              fontWeight: 800,
+              height: 60,
               borderRadius: 30,
               display: "flex",
               alignItems: "center",
@@ -294,8 +337,8 @@ export default function MenuPage() {
       {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} discounts={discounts} />}
 
       {selectedPortionItem && (
-        <PortionDialog 
-          item={selectedPortionItem} 
+        <PortionDialog
+          item={selectedPortionItem}
           discountPercent={discounts?.global.active ? discounts.global.percent : 0}
           onClose={() => setSelectedPortionItem(null)}
           onAdd={(portionName, originalPrice) => {

@@ -3,10 +3,13 @@ import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
-    restaurantName: "Southall Kitchen",
-    bannerMessage: "Fresh food, fast service",
+    restaurantName: "Southall Kitchens",
+    bannerMessage: "Treat the Buds",
     restaurantPhone: "",
-    restaurantAddress: ""
+    restaurantAddress: "",
+    restaurantEmail: "",
+    instagramUrl: "",
+    googleMapsUrl: ""
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -14,7 +17,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch("/api/settings").then(r => r.json()).then(d => {
-      if (d.success && d.data) setSettings(d.data);
+      if (d.success && d.data) setSettings(prev => ({ ...prev, ...d.data }));
       setLoading(false);
     });
   }, []);
@@ -54,15 +57,27 @@ export default function SettingsPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div className="form-group">
                 <label className="form-label">Restaurant Name</label>
-                <input type="text" className="form-input" value={settings.restaurantName} onChange={e => setSettings({...settings, restaurantName: e.target.value})} />
+                <input type="text" className="form-input" value={settings.restaurantName || ""} onChange={e => setSettings({...settings, restaurantName: e.target.value})} />
               </div>
               <div className="form-group">
                 <label className="form-label">Banner Message</label>
-                <input type="text" className="form-input" value={settings.bannerMessage} onChange={e => setSettings({...settings, bannerMessage: e.target.value})} />
+                <input type="text" className="form-input" value={settings.bannerMessage || ""} onChange={e => setSettings({...settings, bannerMessage: e.target.value})} />
               </div>
               <div className="form-group">
                 <label className="form-label">Support Phone</label>
-                <input type="text" className="form-input" value={settings.restaurantPhone} onChange={e => setSettings({...settings, restaurantPhone: e.target.value})} />
+                <input type="text" className="form-input" value={settings.restaurantPhone || ""} onChange={e => setSettings({...settings, restaurantPhone: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Support Email</label>
+                <input type="email" className="form-input" value={settings.restaurantEmail || ""} onChange={e => setSettings({...settings, restaurantEmail: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Instagram URL</label>
+                <input type="text" className="form-input" value={settings.instagramUrl || ""} onChange={e => setSettings({...settings, instagramUrl: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Google Maps URL</label>
+                <input type="text" className="form-input" value={settings.googleMapsUrl || ""} onChange={e => setSettings({...settings, googleMapsUrl: e.target.value})} />
               </div>
             </div>
 

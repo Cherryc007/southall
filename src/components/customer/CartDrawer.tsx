@@ -21,7 +21,7 @@ export default function CartDrawer({ onClose, discounts }: { onClose: () => void
   // Calculate active discount
   let activeDiscountPercent = 0;
   let activeDiscountName = "";
-  
+
   if (chamber.trim() && discounts?.chamber.active) {
     activeDiscountPercent = discounts.chamber.percent;
     activeDiscountName = "Chamber/Staff";
@@ -79,7 +79,7 @@ export default function CartDrawer({ onClose, discounts }: { onClose: () => void
                 {items.map(item => (
                   <div key={item.cartItemId} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{item.name} {item.portionName && <span style={{fontSize: 12, fontWeight: 500, color: 'var(--text-muted)'}}>({item.portionName})</span>}</div>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{item.name} {item.portionName && <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>({item.portionName})</span>}</div>
                       <div style={{ color: "var(--text-muted)", fontSize: 13 }}>{fmt(item.price)} each</div>
                     </div>
                     <div className="qty-control" style={{ background: "white" }}>
@@ -106,7 +106,7 @@ export default function CartDrawer({ onClose, discounts }: { onClose: () => void
                 )}
                 <div className="divider" />
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontWeight: 800, fontSize: 17 }}>Total</span>
+                  <span style={{ fontWeight: 800, fontSize: 17 }}>Total Payable</span>
                   <span style={{ fontWeight: 800, fontSize: 17, color: "var(--brand-dark)" }}>{fmt(finalTotal)}</span>
                 </div>
               </div>
@@ -122,8 +122,8 @@ export default function CartDrawer({ onClose, discounts }: { onClose: () => void
                   <input className="form-input" type="tel" placeholder="+44 7xxx xxxxxx" value={phone} onChange={e => setPhone(e.target.value)} autoFocus />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Chamber / Table Number (optional)</label>
-                  <input className="form-input" type="text" placeholder="e.g. Chamber 5" value={chamber} onChange={e => setChamber(e.target.value)} />
+                  <label className="form-label">Chamber Number and Building (optional)</label>
+                  <input className="form-input" type="text" placeholder="e.g. Building 1, Chamber 5" value={chamber} onChange={e => setChamber(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Special Notes (optional)</label>

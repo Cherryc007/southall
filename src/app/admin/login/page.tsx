@@ -34,9 +34,11 @@ export default function AdminLogin() {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--brand-dark)", padding: 20 }}>
       <div className="card card-pad" style={{ width: "100%", maxWidth: 400, background: "white" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--brand-gold)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 16px" }}>🍽️</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--brand-dark)" }}>Southall Kitchen</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Admin POS Portal</p>
+          <div style={{ width: 140, height: 140, background: "white", borderRadius: 20, padding: 12, margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
+            <img src="/logo.jpeg" alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          </div>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: "var(--brand-dark)", letterSpacing: -0.5 }}>Southall Kitchens</h1>
+          <p style={{ color: "var(--brand-gold)", fontSize: 15, fontWeight: 700, marginTop: 4 }}>Treat the Buds</p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
