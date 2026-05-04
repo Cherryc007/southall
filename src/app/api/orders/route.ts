@@ -50,7 +50,12 @@ export async function POST(req: NextRequest) {
     const discountAmount = discount.active ? (subtotal * discount.percent) / 100 : 0;
     const total = subtotal - discountAmount;
 
-    const shortId = uuidv4().split("-")[0].toUpperCase();
+    // Generate a short ID: 1 Letter + 3 Digits (e.g., SK-F101)
+    const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const digits = "0123456789";
+    const shortId = 
+      letters.charAt(Math.floor(Math.random() * letters.length)) +
+      Array.from({ length: 3 }, () => digits.charAt(Math.floor(Math.random() * digits.length))).join("");
     const orderId = `SK-${shortId}`;
 
     const order = await Order.create({

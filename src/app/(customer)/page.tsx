@@ -52,7 +52,7 @@ function PortionDialog({ item, discountPercent, onClose, onAdd }: { item: MenuIt
 
 
 function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item: MenuItem; discountPercent: number; onSelectPortion: (item: MenuItem) => void, orderMode: boolean }) {
-  const { items, updateQty, add, remove } = useCart();
+  const { items, updateQty, add } = useCart();
 
   const currentPrice = item.price;
   const discountedPrice = currentPrice * (1 - discountPercent / 100);
@@ -69,7 +69,6 @@ function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item:
     if (hasPortions) {
       onSelectPortion(item);
     } else {
-      // Always add with original price; discounts are handled at the total/checkout level
       add({ menuItemId: item._id, name: item.name, portionName: undefined, price: currentPrice, image: item.image });
     }
   };
@@ -82,7 +81,7 @@ function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item:
         </div>
       )}
       {item.image ? (
-        <img src={item.image} alt={item.name} className="menu-item-img" style={{ objectFit: "cover" }} />
+        <img src={item.image} alt={item.name} className="menu-item-img" loading="lazy" />
       ) : (
         <div className="menu-item-img-placeholder">
           {item.category === "beverages" ? "🥤" : item.category === "starters" ? "🥗" : item.category === "wraps" ? "🌯" : item.category === "mains" ? "🍛" : item.category === "combos" ? "🎁" : "🍽️"}
@@ -96,14 +95,14 @@ function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item:
         </div>
         <div className="menu-item-name">{item.name}</div>
         <div className="menu-item-desc">{item.description}</div>
-        <div className="menu-item-footer" style={{ marginTop: 'auto' }}>
+        <div className="menu-item-footer">
           <div className="menu-item-price">
             {hasPortions ? (
-              <span style={{ color: "var(--brand-dark)", fontWeight: 700 }}>{item.portions.map(p => fmt(p.price)).join(" / ")}</span>
+              <span style={{ color: "var(--brand-dark)", fontWeight: 700, fontSize: 13 }}>Starts ₹{Math.min(...item.portions.map(p => p.price))}</span>
             ) : isDiscounted ? (
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: "var(--brand-gold)" }}>{fmt(discountedPrice)}</span>
-                <span style={{ fontSize: 12, textDecoration: "line-through", color: "var(--text-muted)", marginTop: -4 }}>{fmt(currentPrice)}</span>
+                <span style={{ fontSize: 11, textDecoration: "line-through", color: "var(--text-muted)", marginTop: -4 }}>{fmt(currentPrice)}</span>
               </div>
             ) : (
               fmt(currentPrice)
@@ -111,7 +110,7 @@ function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item:
           </div>
           {orderMode && (
             qty === 0 || hasPortions ? (
-              <button className="btn btn-primary btn-sm" onClick={handleAdd}>
+              <button className="btn btn-primary btn-sm" onClick={handleAdd} style={{ padding: "6px 12px", minWidth: 60 }}>
                 {hasPortions ? "Options" : "Add"}
               </button>
             ) : (

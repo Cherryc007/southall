@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { MenuItem } from "@/lib/models/MenuItem";
+import { del } from "@vercel/blob";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,6 +22,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const body = await req.json();
 
+    const existingItem = await MenuItem.findById(id);
+    if (!existingItem) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+
+    // If image is being replaced, delete old one from blob
+    if (body.image !== undefined && existingItem.image && existingItem.image !== body.image && existingItem.image.includes("public.blob.vercel-storage.com")) {
+      try {
+        await del(existingItem.image);
+      } catch (e) {
+        console.error("Failed to delete old blob:", e);
+      }
+    }
+
     const item = await MenuItem.findByIdAndUpdate(
       id,
       {
@@ -39,7 +52,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       { new: true }
     );
 
-    if (!item) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     return NextResponse.json({ success: true, data: item });
   } catch (error) {
     console.error(error);
@@ -51,6 +63,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await connectDB();
     const { id } = await params;
+    
+    const existingItem = await MenuItem.findById(id);
+    if (existingItem && existingItem.image && existingItem.image.includes("public.blob.vercel-storage.com")) {
+      try {
+        await del(existingItem.image);
+      } catch (e) {
+        console.error("Failed to delete blob on item deletion:", e);
+      }
+    }
+
     await MenuItem.findByIdAndDelete(id);
     return NextResponse.json({ success: true, message: "Deleted" });
   } catch (error) {

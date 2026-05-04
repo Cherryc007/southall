@@ -59,21 +59,46 @@ export default function MenuManagement() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
+      return;
+    }
+
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, { 
+        method: "POST", 
+        body: file 
+      });
       const data = await res.json();
-      if (data.success) {
+      if (data.url) {
         setForm(prev => ({ ...prev, image: data.url }));
       } else {
-        alert(data.error);
+        alert(data.error || "Upload failed");
       }
     } catch (e) {
       alert("Upload failed");
     }
     setUploading(false);
+  };
+
+  const removeImage = async () => {
+    if (!form.image) return;
+    
+    // Only delete from Vercel Blob if it's stored there
+    if (form.image.includes("public.blob.vercel-storage.com")) {
+      setUploading(true);
+      try {
+        await fetch(`/api/upload?url=${encodeURIComponent(form.image)}`, { method: "DELETE" });
+      } catch (e) {
+        console.error("Failed to delete blob:", e);
+      }
+      setUploading(false);
+    }
+    
+    setForm(prev => ({ ...prev, image: "" }));
   };
 
   const save = async (e: React.FormEvent) => {
@@ -180,16 +205,27 @@ export default function MenuManagement() {
         <div className="form-group">
           <label className="form-label">Tags & Image (Optional)</label>
           <input className="form-input" placeholder="Tags (comma separated)" value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} style={{ marginBottom: 10 }} />
-          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            {form.image && <img src={form.image} alt="Preview" style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 4 }} />}
-            <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} />
-            {uploading && <span className="spinner spinner-dark" />}
+          <div style={{ display: "flex", gap: 16, alignItems: "center", background: "var(--bg-primary)", padding: 12, borderRadius: 8, border: "1px solid var(--border-light)" }}>
+            {form.image ? (
+              <div style={{ position: "relative" }}>
+                <img src={form.image} alt="Preview" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "2px solid var(--brand-gold)" }} />
+                <button type="button" onClick={removeImage} style={{ position: "absolute", top: -8, right: -8, background: "var(--error)", color: "white", width: 20, height: 20, borderRadius: "50%", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-sm)" }}>✕</button>
+              </div>
+            ) : (
+              <div style={{ width: 64, height: 64, background: "var(--border-light)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🖼️</div>
+            )}
+            <div style={{ flex: 1 }}>
+              <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} style={{ fontSize: 13 }} />
+              {uploading && <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--brand-gold)" }}><span className="spinner spinner-dark" style={{ width: 12, height: 12 }} /> Uploading...</div>}
+            </div>
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-          <button type="button" className="btn btn-ghost" onClick={() => setIsEditing(false)}>Cancel</button>
-          <button className="btn btn-primary" style={{ background: "var(--brand-gold)" }}>{form._id ? "Update Item" : "Create Item"}</button>
+          <button type="button" className="btn btn-ghost" onClick={() => setIsEditing(false)} disabled={uploading}>Cancel</button>
+          <button className="btn btn-primary" style={{ background: "var(--brand-gold)" }} disabled={uploading}>
+            {uploading ? "Please Wait..." : (form._id ? "Update Item" : "Create Item")}
+          </button>
         </div>
       </form>
     </div>

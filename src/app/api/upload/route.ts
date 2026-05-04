@@ -1,39 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put, del } from "@vercel/blob";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request): Promise<NextResponse> {
+  const { searchParams } = new URL(request.url);
+  const filename = searchParams.get("filename");
+
+  if (!filename) {
+    return NextResponse.json({ error: "Filename is required" }, { status: 400 });
+  }
+
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const blob = await put(filename, request.body!, {
+      access: "public",
+    });
 
-    if (!file) {
-      return NextResponse.json({ success: false, error: "No file provided" }, { status: 400 });
-    }
-
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ success: false, error: "Invalid file type" }, { status: 400 });
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ success: false, error: "File too large (max 5MB)" }, { status: 400 });
-    }
-
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    const ext = file.name.split(".").pop() || "jpg";
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, filename), buffer);
-
-    const url = `/uploads/${filename}`;
-    return NextResponse.json({ success: true, url });
+    return NextResponse.json(blob);
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ success: false, error: "Upload failed" }, { status: 500 });
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  }
+}
+
+// Helper to delete an image by URL
+export async function DELETE(request: Request): Promise<NextResponse> {
+  const { searchParams } = new URL(request.url);
+  const url = searchParams.get("url");
+
+  if (!url) {
+    return NextResponse.json({ error: "URL is required" }, { status: 400 });
+  }
+
+  try {
+    await del(url);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete error:", error);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }
