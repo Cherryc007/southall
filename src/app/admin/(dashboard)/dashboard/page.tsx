@@ -2,8 +2,7 @@
 import { useEffect, useState } from "react";
 import OrderCard from "@/components/admin/OrderCard";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function Dashboard() {
+export default function DashboardPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<any>(null);
@@ -31,28 +30,27 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Poll every 10s
+    const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, []);
 
   const activeOrders = orders.filter(o => ["new", "preparing", "ready"].includes(o.status));
   
-  if (loading) return <div className="spinner spinner-dark" />;
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+      <div className="spinner spinner-dark" />
+    </div>
+  );
 
   return (
-    <div>
+    <div className="fade-in">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800 }}>Live Orders</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {settings?.globalDiscountEnabled && (
-            <a href="/admin/discounts" style={{ textDecoration: "none", background: "rgba(212,160,23,0.15)", padding: "6px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600, color: "var(--brand-gold-light)", display: "flex", alignItems: "center", gap: 6, border: "1px solid rgba(212,160,23,0.3)" }}>
-              <span>🎉</span> {settings.globalDiscountPercent}% Global Discount Active
-            </a>
-          )}
-          {settings?.chamberDiscountEnabled && (
-            <a href="/admin/discounts" style={{ textDecoration: "none", background: "rgba(33,150,243,0.15)", padding: "6px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600, color: "#2196f3", display: "flex", alignItems: "center", gap: 6, border: "1px solid rgba(33,150,243,0.3)" }}>
-              <span>👔</span> Staff/Chamber Active
-            </a>
+            <div style={{ background: "rgba(255,107,0,0.1)", padding: "6px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600, color: "var(--brand-gold)", border: "1px solid rgba(255,107,0,0.2)" }}>
+              🎉 {settings.globalDiscountPercent}% Global Discount Active
+            </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success)", display: "inline-block", animation: "pulse 2s infinite" }} />
@@ -62,10 +60,10 @@ export default function Dashboard() {
       </div>
 
       {activeOrders.length === 0 ? (
-        <div style={{ background: "white", padding: 60, textAlign: "center", borderRadius: "var(--radius-lg)", border: "1px solid var(--border-light)" }}>
+        <div className="card card-pad" style={{ textAlign: "center", padding: "80px 20px" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🍽️</div>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--brand-dark)" }}>No active orders right now</h3>
-          <p style={{ color: "var(--text-muted)" }}>Orders will appear here automatically when placed.</p>
+          <p style={{ color: "var(--text-muted)" }}>New orders will appear here in real-time.</p>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>

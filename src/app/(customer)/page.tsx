@@ -98,7 +98,13 @@ function MenuCard({ item, discountPercent, onSelectPortion, orderMode }: { item:
         <div className="menu-item-footer">
           <div className="menu-item-price">
             {hasPortions ? (
-              <span style={{ color: "var(--brand-dark)", fontWeight: 700, fontSize: 13 }}>Starts ₹{Math.min(...item.portions.map(p => p.price))}</span>
+              orderMode ? (
+                <span style={{ color: "var(--brand-dark)", fontWeight: 800, fontSize: 14 }}>
+                  {item.portions.map(p => Math.round(p.price)).join("/")}
+                </span>
+              ) : (
+                <span style={{ color: "var(--brand-dark)", fontWeight: 700, fontSize: 13 }}>Starts ₹{Math.min(...item.portions.map(p => p.price))}</span>
+              )
             ) : isDiscounted ? (
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: "var(--brand-gold)" }}>{fmt(discountedPrice)}</span>
@@ -142,17 +148,19 @@ export default function MenuPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/categories").then(r => r.json()),
-      fetch("/api/menu?available=true").then(r => r.json()),
-      fetch("/api/discount").then(r => r.json()),
-      fetch("/api/settings").then(r => r.json()),
+      fetch("/api/categories").then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+      fetch("/api/menu?available=true").then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+      fetch("/api/discount").then(r => r.ok ? r.json() : { data: null }).catch(() => ({ data: null })),
+      fetch("/api/settings").then(r => r.ok ? r.json() : { data: null }).catch(() => ({ data: null })),
     ]).then(([cats, menu, disc, sett]) => {
       const catList: Category[] = cats.data || [];
       setCategories(catList);
       setMenuItems(menu.data || []);
-      setDiscounts(disc.data);
+      if (disc.data) setDiscounts(disc.data);
       if (sett.data) setSettings(sett.data);
       if (catList.length) setActiveCategory(catList[0].slug);
+    }).catch(err => {
+      console.error("Critical fetch error:", err);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -214,13 +222,15 @@ export default function MenuPage() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, background: "var(--bg-primary)" }}>
-      <img src="/logo.jpeg" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} className="fade-in" />
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--brand-dark)" }}>Southall Kitchens</div>
-        <div style={{ fontSize: 14, color: "var(--brand-gold)", fontWeight: 600 }}>Treat the Buds</div>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 32, background: "var(--brand-dark)" }}>
+      <div className="logo-pulse">
+        <img src="/logo.jpeg" alt="Logo" style={{ width: 140, height: 140, objectFit: "contain", background: "white", borderRadius: "50%", padding: 4, boxShadow: "0 0 40px rgba(212,160,23,0.2)" }} />
       </div>
-      <div className="spinner spinner-dark" style={{ width: 28, height: 28, marginTop: 10 }} />
+      <div style={{ textAlign: "center" }}>
+        <h1 className="entrance-text" style={{ fontSize: 28, fontWeight: 900, color: "white", marginBottom: 8 }}>SOUTHALL KITCHENS</h1>
+        <p className="fade-in" style={{ fontSize: 16, color: "var(--brand-gold)", fontWeight: 600, letterSpacing: "0.2em", opacity: 0.8 }}>TREAT THE BUDS</p>
+      </div>
+      <div className="spinner" style={{ marginTop: 20 }} />
     </div>
   );
 
@@ -264,6 +274,22 @@ export default function MenuPage() {
           <div style={{ background: "rgba(212,160,23,0.1)", border: "1px solid rgba(212,160,23,0.2)", borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 18 }}>🎉</span>
             <span style={{ color: "var(--brand-gold)", fontSize: 13, fontWeight: 600 }}>{discounts.global.percent}% discount active today!</span>
+          </div>
+        )}
+
+        {categories.length === 0 && (
+          <div style={{ textAlign: "center", padding: "100px 20px", color: "var(--text-muted)" }}>
+            <div style={{ fontSize: 64, marginBottom: 24 }}>🍽️</div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--brand-dark)", marginBottom: 12 }}>Menu is Loading...</h2>
+            <p style={{ fontSize: 16 }}>If this takes too long, please refresh the page.</p>
+          </div>
+        )}
+
+        {categories.length > 0 && menuItems.length === 0 && (
+          <div style={{ textAlign: "center", padding: "100px 20px", color: "var(--text-muted)" }}>
+            <div style={{ fontSize: 64, marginBottom: 24 }}>👨‍🍳</div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: "var(--brand-dark)", marginBottom: 12 }}>Kitchen is preparing!</h2>
+            <p style={{ fontSize: 16 }}>Our menu items will appear here shortly.</p>
           </div>
         )}
 
